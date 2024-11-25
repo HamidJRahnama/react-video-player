@@ -1,0 +1,23 @@
+.custom-hover-effect {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 5px;
+    /* background-color: #007bff; */
+    /* Initial background color */
+    /* color: white; */
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    /* Smooth transition */
+}
+
+.custom-hover-effect:hover {
+    background-color: rgb(189, 255, 255);
+    /* Hover background color */
+    /* color: white; */
+    transform: scale(1.02);
+    /* Slight zoom effect */
+}
+
+.custom-hover-effect-active {
+    background-color: rgb(154 253 253);
+}
