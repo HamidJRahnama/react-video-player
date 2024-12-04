@@ -29,6 +29,8 @@ const Sidebar = () => {
       subItems: [
         { label: "Analytics", icon: faGauge, route: "/" },
         { label: "Test A", icon: faGauge, route: "/testa" },
+        { label: "Videos", icon: faGauge, route: "/videos" },
+        { label: "Upload", icon: faGauge, route: "/upload" },
         // { label: "VID 0", icon: faGauge, route: "video-player0" },
         // { label: "VID 1", icon: faGauge, route: "/video-player1" },
         // { label: "Calendar", icon: "I", route: "/calendar" },
