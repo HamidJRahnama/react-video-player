@@ -30,10 +30,11 @@ function App() {
 
   return (
     <>
+      {/*
       <button onClick={() => console.log(localStorage.getItem("access_token"))}>
         Log Store
       </button>
-      {/* <button onClick={() => console.log(localStorage.clear())}>
+       <button onClick={() => console.log(localStorage.clear())}>
         Log Clear
       </button> */}
       <BrowserRouter>

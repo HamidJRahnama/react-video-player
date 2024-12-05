@@ -1,68 +1,15 @@
-// // // // THE FIFTH VERSION || i just installed ffmpeg but the FORTH VERSION ISWORKING OK
+// // // // // THE SIXTH VERSION || i it just module base
 const { createServer } = require("http");
-const { stat, createReadStream, existsSync, readdir, mkdir } = require("fs");
+const { stat, createReadStream, existsSync } = require("fs");
 const { promisify } = require("util");
 const path = require("path");
-const ffmpeg = require("fluent-ffmpeg");
-const ffmpegPath = require("ffmpeg-static");
-const multer = require("multer");
-const { v4: uuidv4 } = require("uuid");
+const uploadHandler = require("./uploadHandler");
+const { getVideoList } = require("./metadataHandler");
 
 const fileInfo = promisify(stat);
-const readdirAsync = promisify(readdir);
-const mkdirAsync = promisify(mkdir);
 
 const videoBasePath = path.resolve(__dirname, "../public/videos");
 
-// Set ffmpegPath for fluent-ffmpeg
-ffmpeg.setFfmpegPath(ffmpegPath);
-
-// Configure Multer for File Uploads
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const videoFolder = uuidv4();
-    const uploadPath = path.join(videoBasePath, videoFolder);
-    await mkdirAsync(uploadPath);
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${uuidv4()}.mp4`);
-  },
-});
-
-const upload = multer({ storage });
-
-// Helper function to create video quality versions
-async function createVideoQualities(videoFolder, videoFile) {
-  const originalVideoPath = path.join(videoBasePath, videoFolder, videoFile);
-  const qualityFolderPath = path.join(videoBasePath, videoFolder);
-
-  const qualities = [
-    { quality: "360", size: "640x360", bitrate: "800k" },
-    { quality: "480", size: "854x480", bitrate: "1000k" },
-    { quality: "720", size: "1280x720", bitrate: "1500k" },
-  ];
-
-  qualities.forEach(({ quality, size, bitrate }) => {
-    const outputFile = `${videoFolder}-${quality}.mp4`;
-    const outputPath = path.join(qualityFolderPath, outputFile);
-
-    if (!existsSync(outputPath)) {
-      ffmpeg(originalVideoPath)
-        .size(size)
-        .videoCodec("libx264")
-        .output(outputPath)
-        .outputOptions(`-b:v ${bitrate}`)
-        .on("end", () => console.log(`Generated ${outputFile}`))
-        .on("error", (err) =>
-          console.error(`Error generating ${outputFile}: ${err.message}`)
-        )
-        .run();
-    }
-  });
-}
-
-// Create HTTP Server
 createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST");
@@ -77,51 +24,20 @@ createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathname = url.pathname;
 
-    // Welcome route
     if (pathname === "/") {
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("Welcome to the Video API!");
       return;
     }
 
-    // List available video folders
     if (pathname === "/videos") {
-      const folders = await readdirAsync(videoBasePath, {
-        withFileTypes: true,
-      });
-      const videoFolders = folders
-        .filter((dirent) => dirent.isDirectory())
-        .map((dirent) => dirent.name);
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(videoFolders));
-      return;
+      return await getVideoList(req, res, videoBasePath);
     }
 
-    // Video upload route
     if (pathname === "/video/upload" && req.method === "POST") {
-      upload.single("video")(req, res, async (err) => {
-        if (err) {
-          console.error("Upload error:", err);
-          res.writeHead(500, { "Content-Type": "text/plain" });
-          return res.end("Error uploading video.");
-        }
-
-        const { filename, destination } = req.file;
-        const videoFolder = path.basename(destination);
-
-        // Generate quality versions
-        await createVideoQualities(videoFolder, filename);
-
-        res.writeHead(200, { "Content-Type": "text/plain" });
-        res.end(
-          `Video uploaded successfully. Available at /videos/${videoFolder}`
-        );
-      });
-      return;
+      return await uploadHandler(req, res, videoBasePath);
     }
 
-    // Video streaming route
     const videoMatch = pathname.match(/^\/videos\/([^\/]+)\/(360|480|720)$/);
     if (videoMatch) {
       const videoName = videoMatch[1];
@@ -155,7 +71,7 @@ createServer(async (req, res) => {
           "Content-Type": "video/mp4",
         });
 
-        createReadStream(outputPath, { start, end }).pipe(res);
+        return createReadStream(outputPath, { start, end }).pipe(res);
       } else {
         const { size } = await fileInfo(outputPath);
         res.writeHead(200, {
@@ -163,12 +79,10 @@ createServer(async (req, res) => {
           "Content-Type": "video/mp4",
         });
 
-        createReadStream(outputPath).pipe(res);
+        return createReadStream(outputPath).pipe(res);
       }
-      return;
     }
 
-    // Fallback for unmatched routes
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Route not found");
   } catch (error) {
@@ -177,6 +91,186 @@ createServer(async (req, res) => {
     res.end("Internal Server Error");
   }
 }).listen(8000, () => console.log("Server running at http://localhost:8000/"));
+
+// // // // THE FIFTH VERSION || i just installed ffmpeg but the FORTH VERSION ISWORKING OK
+// const { createServer } = require("http");
+// const { stat, createReadStream, existsSync, readdir, mkdir } = require("fs");
+// const { promisify } = require("util");
+// const path = require("path");
+// const ffmpeg = require("fluent-ffmpeg");
+// const ffmpegPath = require("ffmpeg-static");
+// const multer = require("multer");
+// const { v4: uuidv4 } = require("uuid");
+
+// const fileInfo = promisify(stat);
+// const readdirAsync = promisify(readdir);
+// const mkdirAsync = promisify(mkdir);
+
+// const videoBasePath = path.resolve(__dirname, "../public/videos");
+
+// // Set ffmpegPath for fluent-ffmpeg
+// ffmpeg.setFfmpegPath(ffmpegPath);
+
+// // Configure Multer for File Uploads
+// const storage = multer.diskStorage({
+//   destination: async (req, file, cb) => {
+//     const videoFolder = uuidv4();
+//     const uploadPath = path.join(videoBasePath, videoFolder);
+//     await mkdirAsync(uploadPath);
+//     cb(null, uploadPath);
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${uuidv4()}.mp4`);
+//   },
+// });
+
+// const upload = multer({ storage });
+
+// // Helper function to create video quality versions
+// async function createVideoQualities(videoFolder, videoFile) {
+//   const originalVideoPath = path.join(videoBasePath, videoFolder, videoFile);
+//   const qualityFolderPath = path.join(videoBasePath, videoFolder);
+
+//   const qualities = [
+//     { quality: "360", size: "640x360", bitrate: "800k" },
+//     { quality: "480", size: "854x480", bitrate: "1000k" },
+//     { quality: "720", size: "1280x720", bitrate: "1500k" },
+//   ];
+
+//   qualities.forEach(({ quality, size, bitrate }) => {
+//     const outputFile = `${videoFolder}-${quality}.mp4`;
+//     const outputPath = path.join(qualityFolderPath, outputFile);
+
+//     if (!existsSync(outputPath)) {
+//       ffmpeg(originalVideoPath)
+//         .size(size)
+//         .videoCodec("libx264")
+//         .output(outputPath)
+//         .outputOptions(`-b:v ${bitrate}`)
+//         .on("end", () => console.log(`Generated ${outputFile}`))
+//         .on("error", (err) =>
+//           console.error(`Error generating ${outputFile}: ${err.message}`)
+//         )
+//         .run();
+//     }
+//   });
+// }
+
+// // Create HTTP Server
+// createServer(async (req, res) => {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+//   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST");
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+
+//   if (req.method === "OPTIONS") {
+//     res.writeHead(204);
+//     return res.end();
+//   }
+
+//   try {
+//     const url = new URL(req.url, `http://${req.headers.host}`);
+//     const pathname = url.pathname;
+
+//     // Welcome route
+//     if (pathname === "/") {
+//       res.writeHead(200, { "Content-Type": "text/plain" });
+//       res.end("Welcome to the Video API!");
+//       return;
+//     }
+
+//     // List available video folders
+//     if (pathname === "/videos") {
+//       const folders = await readdirAsync(videoBasePath, {
+//         withFileTypes: true,
+//       });
+//       const videoFolders = folders
+//         .filter((dirent) => dirent.isDirectory())
+//         .map((dirent) => dirent.name);
+
+//       res.writeHead(200, { "Content-Type": "application/json" });
+//       res.end(JSON.stringify(videoFolders));
+//       return;
+//     }
+
+//     // Video upload route
+//     if (pathname === "/video/upload" && req.method === "POST") {
+//       upload.single("video")(req, res, async (err) => {
+//         if (err) {
+//           console.error("Upload error:", err);
+//           res.writeHead(500, { "Content-Type": "text/plain" });
+//           return res.end("Error uploading video.");
+//         }
+
+//         const { filename, destination } = req.file;
+//         const videoFolder = path.basename(destination);
+
+//         // Generate quality versions
+//         await createVideoQualities(videoFolder, filename);
+
+//         res.writeHead(200, { "Content-Type": "text/plain" });
+//         res.end(
+//           `Video uploaded successfully. Available at /videos/${videoFolder}`
+//         );
+//       });
+//       return;
+//     }
+
+//     // Video streaming route
+//     const videoMatch = pathname.match(/^\/videos\/([^\/]+)\/(360|480|720)$/);
+//     if (videoMatch) {
+//       const videoName = videoMatch[1];
+//       const quality = videoMatch[2];
+
+//       const videoFolderPath = path.join(videoBasePath, videoName);
+//       const outputFileName = `${videoName}-${quality}.mp4`;
+//       const outputPath = path.join(videoFolderPath, outputFileName);
+
+//       if (!existsSync(outputPath)) {
+//         res.writeHead(404, { "Content-Type": "text/plain" });
+//         return res.end("Requested video quality not found.");
+//       }
+
+//       const range = req.headers.range;
+//       if (range) {
+//         const { size } = await fileInfo(outputPath);
+//         let [start, end] = range.replace(/bytes=/, "").split("-");
+//         start = parseInt(start, 10);
+//         end = end ? parseInt(end, 10) : size - 1;
+
+//         if (start >= size || end >= size || start > end) {
+//           res.writeHead(416, { "Content-Range": `bytes */${size}` });
+//           return res.end();
+//         }
+
+//         res.writeHead(206, {
+//           "Content-Range": `bytes ${start}-${end}/${size}`,
+//           "Accept-Ranges": "bytes",
+//           "Content-Length": end - start + 1,
+//           "Content-Type": "video/mp4",
+//         });
+
+//         createReadStream(outputPath, { start, end }).pipe(res);
+//       } else {
+//         const { size } = await fileInfo(outputPath);
+//         res.writeHead(200, {
+//           "Content-Length": size,
+//           "Content-Type": "video/mp4",
+//         });
+
+//         createReadStream(outputPath).pipe(res);
+//       }
+//       return;
+//     }
+
+//     // Fallback for unmatched routes
+//     res.writeHead(404, { "Content-Type": "text/plain" });
+//     res.end("Route not found");
+//   } catch (error) {
+//     console.error("Error processing request:", error);
+//     res.writeHead(500, { "Content-Type": "text/plain" });
+//     res.end("Internal Server Error");
+//   }
+// }).listen(8000, () => console.log("Server running at http://localhost:8000/"));
 
 // // // // THE Forth VERSION || THE UPLOAD FEATURE IS WORKING OK
 // const { createServer } = require("http");
