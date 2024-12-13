@@ -20,7 +20,7 @@ function App() {
         { path: "videos", element: <Videos /> },
 
         // Updated route for videos with a dynamic videoId
-        { path: "video/:videoId", element: <VideoPlayer /> }, // This will render the VideoPlayer
+        { path: "videos/:videoId", element: <VideoPlayer /> }, // This will render the VideoPlayer
         { path: "upload", element: <UploadPage /> },
       ],
     },

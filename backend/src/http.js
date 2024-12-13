@@ -1,4 +1,3 @@
-// // // // // THE SIXTH VERSION || i it just module base
 const { createServer } = require("http");
 const { stat, createReadStream, existsSync } = require("fs");
 const { promisify } = require("util");
@@ -38,48 +37,21 @@ createServer(async (req, res) => {
       return await uploadHandler(req, res, videoBasePath);
     }
 
-    const videoMatch = pathname.match(/^\/videos\/([^\/]+)\/(360|480|720)$/);
-    if (videoMatch) {
-      const videoName = videoMatch[1];
-      const quality = videoMatch[2];
-
-      const videoFolderPath = path.join(videoBasePath, videoName);
-      const outputFileName = `${videoName}-${quality}.mp4`;
-      const outputPath = path.join(videoFolderPath, outputFileName);
-
-      if (!existsSync(outputPath)) {
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        return res.end("Requested video quality not found.");
-      }
-
-      const range = req.headers.range;
-      if (range) {
-        const { size } = await fileInfo(outputPath);
-        let [start, end] = range.replace(/bytes=/, "").split("-");
-        start = parseInt(start, 10);
-        end = end ? parseInt(end, 10) : size - 1;
-
-        if (start >= size || end >= size || start > end) {
-          res.writeHead(416, { "Content-Range": `bytes */${size}` });
-          return res.end();
-        }
-
-        res.writeHead(206, {
-          "Content-Range": `bytes ${start}-${end}/${size}`,
-          "Accept-Ranges": "bytes",
-          "Content-Length": end - start + 1,
-          "Content-Type": "video/mp4",
-        });
-
-        return createReadStream(outputPath, { start, end }).pipe(res);
-      } else {
-        const { size } = await fileInfo(outputPath);
+    if (pathname.startsWith("/videos/")) {
+      const videoPath = path.join(
+        videoBasePath,
+        pathname.replace("/videos/", "")
+      );
+      if (existsSync(videoPath)) {
         res.writeHead(200, {
-          "Content-Length": size,
-          "Content-Type": "video/mp4",
+          "Content-Type": pathname.endsWith(".m3u8")
+            ? "application/vnd.apple.mpegurl"
+            : "video/mp2t",
         });
-
-        return createReadStream(outputPath).pipe(res);
+        return createReadStream(videoPath).pipe(res);
+      } else {
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        return res.end("File not found");
       }
     }
 
@@ -91,6 +63,102 @@ createServer(async (req, res) => {
     res.end("Internal Server Error");
   }
 }).listen(8000, () => console.log("Server running at http://localhost:8000/"));
+
+// ********************* FINAL VERSION OF BUTE RANGE REQUEST **************************** //
+
+// // // // // // THE SIXTH VERSION || i it just module base
+// const { createServer } = require("http");
+// const { stat, createReadStream, existsSync } = require("fs");
+// const { promisify } = require("util");
+// const path = require("path");
+// const uploadHandler = require("./uploadHandler");
+// const { getVideoList } = require("./metadataHandler");
+
+// const fileInfo = promisify(stat);
+
+// const videoBasePath = path.resolve(__dirname, "../public/videos");
+
+// createServer(async (req, res) => {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+//   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS, POST");
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Range");
+
+//   if (req.method === "OPTIONS") {
+//     res.writeHead(204);
+//     return res.end();
+//   }
+
+//   try {
+//     const url = new URL(req.url, `http://${req.headers.host}`);
+//     const pathname = url.pathname;
+
+//     if (pathname === "/") {
+//       res.writeHead(200, { "Content-Type": "text/plain" });
+//       res.end("Welcome to the Video API!");
+//       return;
+//     }
+
+//     if (pathname === "/videos") {
+//       return await getVideoList(req, res, videoBasePath);
+//     }
+
+//     if (pathname === "/video/upload" && req.method === "POST") {
+//       return await uploadHandler(req, res, videoBasePath);
+//     }
+
+//     const videoMatch = pathname.match(/^\/videos\/([^\/]+)\/(360|480|720)$/);
+//     if (videoMatch) {
+//       const videoName = videoMatch[1];
+//       const quality = videoMatch[2];
+
+//       const videoFolderPath = path.join(videoBasePath, videoName);
+//       const outputFileName = `${videoName}-${quality}.mp4`;
+//       const outputPath = path.join(videoFolderPath, outputFileName);
+
+//       if (!existsSync(outputPath)) {
+//         res.writeHead(404, { "Content-Type": "text/plain" });
+//         return res.end("Requested video quality not found.");
+//       }
+
+//       const range = req.headers.range;
+//       if (range) {
+//         const { size } = await fileInfo(outputPath);
+//         let [start, end] = range.replace(/bytes=/, "").split("-");
+//         start = parseInt(start, 10);
+//         end = end ? parseInt(end, 10) : size - 1;
+
+//         if (start >= size || end >= size || start > end) {
+//           res.writeHead(416, { "Content-Range": `bytes */${size}` });
+//           return res.end();
+//         }
+
+//         res.writeHead(206, {
+//           "Content-Range": `bytes ${start}-${end}/${size}`,
+//           "Accept-Ranges": "bytes",
+//           "Content-Length": end - start + 1,
+//           "Content-Type": "video/mp4",
+//         });
+
+//         return createReadStream(outputPath, { start, end }).pipe(res);
+//       } else {
+//         const { size } = await fileInfo(outputPath);
+//         res.writeHead(200, {
+//           "Content-Length": size,
+//           "Content-Type": "video/mp4",
+//         });
+
+//         return createReadStream(outputPath).pipe(res);
+//       }
+//     }
+
+//     res.writeHead(404, { "Content-Type": "text/plain" });
+//     res.end("Route not found");
+//   } catch (error) {
+//     console.error("Error processing request:", error);
+//     res.writeHead(500, { "Content-Type": "text/plain" });
+//     res.end("Internal Server Error");
+//   }
+// }).listen(8000, () => console.log("Server running at http://localhost:8000/"));
 
 // // // // THE FIFTH VERSION || i just installed ffmpeg but the FORTH VERSION ISWORKING OK
 // const { createServer } = require("http");

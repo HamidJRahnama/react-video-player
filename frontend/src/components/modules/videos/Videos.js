@@ -29,7 +29,7 @@ const Videos = () => {
                 <Card.Body>
                   <Card.Title>{video.title}</Card.Title>
                   <Card.Text>{video.description}</Card.Text>
-                  <Link to={`/video/${video.id}`}>
+                  <Link to={`/videos/${video.id}`}>
                     <Button>Watch Video</Button>
                   </Link>
                 </Card.Body>
