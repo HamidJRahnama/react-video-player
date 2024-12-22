@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 
 const Videos = () => {
-  const [videoFolders, setVideoFolders] = useState([]); // State to store video folders
+  const [videoFolders, setVideoFolders] = useState([]);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -17,7 +17,7 @@ const Videos = () => {
     };
 
     fetchVideos();
-  }, []); // Empty dependency array ensures this runs only once when the component mounts
+  }, []);
 
   return (
     <Container>

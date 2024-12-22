@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-// FA-Icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCoffee,
@@ -18,7 +17,7 @@ import {
 
 import "./style.css";
 const Sidebar = () => {
-  const location = useLocation(); // To get the current route
+  const location = useLocation();
   const navigate = useNavigate();
   const isActiveRoute = (route) => location.pathname === route; // Helper function to check if the route is active
 
@@ -28,9 +27,9 @@ const Sidebar = () => {
       icon: "bi-chevron-left",
       subItems: [
         { label: "Analytics", icon: faGauge, route: "/" },
-        { label: "Test A", icon: faGauge, route: "/testa" },
         { label: "Videos", icon: faGauge, route: "/videos" },
         { label: "Upload", icon: faGauge, route: "/upload" },
+        // { label: "Test A", icon: faGauge, route: "/testa" },
         // { label: "VID 0", icon: faGauge, route: "video-player0" },
         // { label: "VID 1", icon: faGauge, route: "/video-player1" },
         // { label: "Calendar", icon: "I", route: "/calendar" },
